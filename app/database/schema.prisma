@@ -1,0 +1,158 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["extendedWhereUnique"]
+}
+
+// Disclaimer: This schema is designed for a 3 tiers subscription app (free, tier_1, tier_2)
+// Each tier has a monthly and yearly price in usd and eur
+// Adapt it to your needs and don't forget to prisma generate after changes
+// You certainly will need to adapt the code, the seeding script and other stripe scripts I made (in the scripts folder)
+// It will be easier to start from scratch if you made a lot of changes (recreating Supabase DB and erasing Stripe tests data)
+
+// Enums
+// We use enums to make sure our data is consistent
+
+// Tier Ids are used to identify tiers (products) in Stripe. They must be predictable in our model.
+// Add more tiers if needed
+enum TierId {
+  free
+  tier_1
+  tier_2
+}
+
+// Supported currencies in our app
+// Add more currencies if needed
+// https://stripe.com/docs/currencies
+enum Currency {
+  usd
+  eur
+}
+
+// Supported interval in our app
+// Add more intervals if needed
+// https://stripe.com/docs/api/prices/object#price_object-recurring-interval
+enum Interval {
+  month
+  year
+}
+
+// Base on Stripe API version 2022-11-15
+// https://stripe.com/docs/api/subscriptions/list#list_subscriptions-status
+enum SubscriptionStatus {
+  active
+  past_due
+  unpaid
+  canceled
+  incomplete
+  incomplete_expired
+  trialing
+  all
+  ended
+}
+
+// Models
+model User {
+  id           String        @id
+  name         String
+  email        String        @unique
+  customerId   String        @unique // Created by Stripe
+  currency     Currency?
+  tierId       TierId
+  tier         Tier          @relation(fields: [tierId], references: [id])
+  notes        Note[]
+  subscription Subscription?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("users")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notes")
+}
+
+model Tier {
+  id            TierId         @id // Used to create Stripe product ID
+  name          String
+  active        Boolean        @default(true)
+  description   String?
+  featuresList  String[]
+  subscriptions Subscription[]
+  subscribers   User[]
+  prices        Price[]
+  tierLimitId   TierId         @unique
+  tierLimit     TierLimit      @relation(fields: [tierLimitId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("tiers")
+}
+
+model TierLimit {
+  id               TierId   @id
+  tier             Tier?
+  maxNumberOfNotes Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("tiers_limit")
+}
+
+model Price {
+  id            String          @id // Created by Stripe
+  active        Boolean?        @default(true)
+  interval      Interval
+  tierId        TierId
+  tier          Tier            @relation(fields: [tierId], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  subscriptions Subscription[]
+  currencies    PriceCurrency[]
+
+  @@unique([id, tierId, interval, active]) // We should only have one active price per tier and interval
+  @@map("prices")
+}
+
+// In Stripe, Price has a unique ID even if they have multiple currencies.
+// By supporting multiple currencies in our app, we need to create a new model to store the price per currency.
+model PriceCurrency {
+  amount   Int
+  currency Currency
+  priceId  String
+  price    Price    @relation(fields: [priceId], references: [id])
+
+  @@id([priceId, currency]) // We should only have one amount per currency and price
+  @@map("prices_currencies")
+}
+
+// Managed by Stripe webhook
+model Subscription {
+  id                 String             @id // Created by Stripe
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  tierId             TierId
+  tier               Tier               @relation(fields: [tierId], references: [id])
+  itemId             String
+  priceId            String
+  price              Price              @relation(fields: [priceId], references: [id])
+  status             SubscriptionStatus
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean?           @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@map("subscriptions")
+}

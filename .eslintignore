@@ -1,0 +1,5 @@
+/build
+/public/build
+*.config*
+/test/
+/remix.init/
