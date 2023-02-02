@@ -13,6 +13,9 @@
   <b>Disclaimer</b>: This stack gives you a good starting point but it can't handle a specific business model. You'll need to adapt it to your needs and you must understand how Stripe works before going to production.
 </p>
 
+![supa-stripe-stack](https://user-images.githubusercontent.com/20722140/216357731-806840c9-03f0-4ee5-a3cc-f12382b4bc88.png)
+
+
 > I want to thank and credit [DevXO](https://github.com/dev-xo) for its work on [Stripe Stack](https://github.com/dev-xo/stripe-stack) which helped me a lot to build the webhook part of this stack.
 
 Learn more about [Remix Stacks](https://remix.run/stacks).
