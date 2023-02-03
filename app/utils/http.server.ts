@@ -45,11 +45,11 @@ export function getDefaultCurrency(request: Request) {
 
   if (!locales) return DEFAULT_CURRENCY;
 
-  const country = locales[0].split("-")[1] as keyof typeof countryToCurrency;
+  const country = locales[0].split("-")[0] as keyof typeof countryToCurrency;
 
   const foundCurrency = z
     .nativeEnum(Currency)
-    .safeParse(countryToCurrency[country].toLowerCase());
+    .safeParse(countryToCurrency[country]?.toLowerCase());
 
   if (!foundCurrency.success) return DEFAULT_CURRENCY;
 
