@@ -32,7 +32,7 @@ async function main({ rootDirectory, packageManager, isTypeScript }) {
   );
   const DOCKERFILE_PATH = path.join(rootDirectory, "Dockerfile");
 
-  const REPLACER = "supa-stripe-stack-template";
+  const REPLACER = "remix-supa-stripe-stack";
 
   const DIR_NAME = path.basename(rootDirectory);
   const SUFFIX = getRandomString(2);

@@ -193,3 +193,26 @@ export async function getBillingInfo(id: User["id"]) {
     });
   }
 }
+
+export async function deleteUser(id: User["id"]) {
+  try {
+    const { data, error } = await getBillingInfo(id);
+
+    if (error) {
+      throw error;
+    }
+
+    await stripe.customers.del(data.customerId);
+    await deleteAuthAccount(id);
+    await db.user.delete({ where: { id } });
+
+    return success(true);
+  } catch (cause) {
+    return failure({
+      cause,
+      message: "Oups, unable to delete your test account",
+      metadata: { id },
+      tag,
+    });
+  }
+}

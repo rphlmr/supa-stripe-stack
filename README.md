@@ -1,7 +1,7 @@
 <h1 align="center">Remix Supa Stripe Stack</h1>
 
 <p align="center">
-  <a href="https://twitter.com/rphlmr">Twitter</a>
+  <a href="https://twitter.com/rphlmr">Twitter</a> • <a href="https://remix-supa-stripe-stack.fly.dev/">Live Demo</a>
   <br/>
   <br/>
   A Remix & Stripe Stack, backed by Supabase (driven by Prisma), that integrates authentication, subscriptions (multi-currency, month and year intervals) and handling tier limit. 
