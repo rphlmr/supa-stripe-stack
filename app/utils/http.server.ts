@@ -45,7 +45,9 @@ export function getDefaultCurrency(request: Request) {
 
   if (!locales) return DEFAULT_CURRENCY;
 
-  const country = locales[0].split("-")[0] as keyof typeof countryToCurrency;
+  const country = locales[0]
+    .split("-")[0]
+    .toUpperCase() as keyof typeof countryToCurrency;
 
   const foundCurrency = z
     .nativeEnum(Currency)
