@@ -1,11 +1,17 @@
-import type { LoaderArgs } from "@remix-run/node";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
+import type { ActionArgs, LoaderArgs } from "@remix-run/node";
+import {
+  Form,
+  useFetcher,
+  useLoaderData,
+  useTransition,
+} from "@remix-run/react";
 
 import { Button, Time } from "~/components";
-import { requireAuthSession } from "~/modules/auth";
+import { destroyAuthSession, requireAuthSession } from "~/modules/auth";
 import { getPricingPlan, PricingTable } from "~/modules/price";
 import { getSubscription } from "~/modules/subscription";
-import { getBillingInfo, getUserTier } from "~/modules/user";
+import { deleteUser, getBillingInfo, getUserTier } from "~/modules/user";
 import { getDefaultCurrency, response, isFormProcessing, tw } from "~/utils";
 
 export async function loader({ request }: LoaderArgs) {
@@ -42,6 +48,18 @@ export async function loader({ request }: LoaderArgs) {
     },
     { authSession }
   );
+}
+
+export async function action({ request }: ActionArgs) {
+  const authSession = await requireAuthSession(request);
+
+  const deleteResult = await deleteUser(authSession.userId);
+
+  if (deleteResult.error) {
+    return response.serverError(deleteResult.error, { authSession });
+  }
+
+  return destroyAuthSession(request);
 }
 
 export default function Subscription() {
@@ -91,6 +109,40 @@ export default function Subscription() {
         userTierId={userTier.id}
         defaultDisplayAnnual={interval === "year"}
       />
+      <div className="rounded-md bg-yellow-50 p-4">
+        <div className="flex">
+          <div className="shrink-0">
+            <InformationCircleIcon
+              className="h-5 w-5 text-yellow-400"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-yellow-800">
+              Do not use a real credit card for testing 😅
+            </h3>
+            <div className="mt-2 text-sm text-yellow-700">
+              <p>
+                You can use
+                <span className="mx-2 inline-flex rounded-md border border-gray-200 bg-gray-100 p-1 text-gray-800">
+                  4242424242424242
+                </span>
+                Expire date
+                <span className="mx-2 inline-flex rounded-md border border-gray-200 bg-gray-100 p-1 text-gray-800">
+                  12/34
+                </span>
+                CVC
+                <span className="mx-2 inline-flex rounded-md border border-gray-200 bg-gray-100 p-1 text-gray-800">
+                  123
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-center">
+        <DeleteTestAccount />
+      </div>
     </div>
   );
 }
@@ -106,5 +158,21 @@ function Highlight({
     <span className={tw("font-bold", important && "text-red-600")}>
       {children}
     </span>
+  );
+}
+
+function DeleteTestAccount() {
+  const transition = useTransition();
+  const isProcessing = isFormProcessing(transition.state);
+
+  return (
+    <Form method="post">
+      <Button
+        disabled={isProcessing}
+        className="border-red-600 bg-red-600 hover:bg-red-700"
+      >
+        {isProcessing ? "Deleting..." : "Delete my test account"}
+      </Button>
+    </Form>
   );
 }
