@@ -6,7 +6,6 @@ import { getClientLocales } from "remix-utils";
 import { z } from "zod";
 
 import { DEFAULT_CURRENCY } from "./env";
-import { Logger } from "./logger";
 import type { FailureReason } from "./resolvers";
 
 export function getCurrentPath(request: Request) {
@@ -78,6 +77,20 @@ function makePublicError({ message, metadata, traceId }: FailureReason) {
   return { message, metadata, traceId };
 }
 
+function errorResponse(
+  status: number,
+  reason: FailureReason,
+  options: ResponseOptions
+) {
+  return json(
+    { data: null, error: makePublicError(reason) },
+    {
+      ...makeOptions(options),
+      status,
+    }
+  );
+}
+
 /**
  * This is a tiny helper to normalize `json` responses.
  *
@@ -94,28 +107,10 @@ export const response = {
         status: 200,
       }
     ),
-  serverError: (reason: FailureReason, options: ResponseOptions) => {
-    Logger.error(reason);
-
-    return json(
-      { data: null, error: makePublicError(reason) },
-      {
-        ...makeOptions(options),
-        status: 500,
-      }
-    );
-  },
-  badRequest: (reason: FailureReason, options: ResponseOptions) => {
-    Logger.error(reason);
-
-    return json(
-      { data: null, error: makePublicError(reason) },
-      {
-        ...makeOptions(options),
-        status: 400,
-      }
-    );
-  },
+  serverError: (reason: FailureReason, options: ResponseOptions) =>
+    errorResponse(500, reason, options),
+  badRequest: (reason: FailureReason, options: ResponseOptions) =>
+    errorResponse(400, reason, options),
   redirect: (url: string, options: ResponseOptions) =>
     redirect(url, {
       ...makeOptions(options),

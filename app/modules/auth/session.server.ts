@@ -74,8 +74,6 @@ async function getAuthSession(request: Request): Promise<AuthSession | null> {
   const session = await getSession(request);
 
   if (session.error) {
-    Logger.error(session.error);
-
     return null;
   }
 
@@ -104,8 +102,6 @@ async function commitAuthSession(
   const session = await getSession(request);
 
   if (session.error) {
-    Logger.error(session.error);
-
     return "";
   }
 
@@ -231,8 +227,6 @@ async function refreshAuthSession(
   // 👾 game over, log in again
   // yes, arbitrary, but it's a good way to don't let an illegal user here with an expired token
   if (refreshedAuthSession.error) {
-    Logger.error(refreshedAuthSession.error);
-
     const redirectUrl = `${LOGIN_URL}?${makeRedirectToFromHere(request)}`;
 
     // here we throw instead of return because this function promise a AuthSession and not a response object

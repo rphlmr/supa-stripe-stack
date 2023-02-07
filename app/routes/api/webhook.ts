@@ -209,5 +209,5 @@ export async function action({ request }: ActionArgs) {
     }
   }
 
-  return response.ok(success(null), { authSession: null });
+  return response.ok(null, { authSession: null });
 }
