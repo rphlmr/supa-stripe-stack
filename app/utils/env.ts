@@ -1,6 +1,7 @@
 import { Currency } from "@prisma/client";
 import { z } from "zod";
 
+import { SupaStripeStackError } from "./error";
 import { isBrowser } from "./is-browser";
 
 declare global {
@@ -43,7 +44,9 @@ function getEnv(
   const value = source[name as keyof typeof source] || "";
 
   if (!value && isRequired) {
-    throw new Error(`${name} is not set`);
+    throw new SupaStripeStackError({
+      message: `Env "${name}" is not set`,
+    });
   }
 
   return value;

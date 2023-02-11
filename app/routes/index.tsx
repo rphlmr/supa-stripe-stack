@@ -13,17 +13,17 @@ export async function loader({ request }: LoaderArgs) {
     return response.redirect("/app", { authSession: null });
   }
 
-  const pricingPlan = await getPricingPlan(getDefaultCurrency(request));
+  try {
+    const pricingPlan = await getPricingPlan(getDefaultCurrency(request));
 
-  if (pricingPlan.error) {
-    throw response.serverError(pricingPlan.error, { authSession: null });
+    return response.ok({ pricingPlan }, { authSession: null });
+  } catch (cause) {
+    throw response.error(cause, { authSession: null });
   }
-
-  return response.ok(pricingPlan.data, { authSession: null });
 }
 
 export default function Home() {
-  const pricingPlan = useLoaderData<typeof loader>().data;
+  const { pricingPlan } = useLoaderData<typeof loader>();
 
   return (
     <div className="flex flex-col gap-y-10">

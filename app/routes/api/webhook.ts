@@ -10,10 +10,8 @@ import {
 } from "~/modules/subscription";
 import { TierId, updateTier } from "~/modules/tier";
 import {
-  failure,
   response,
   STRIPE_ENDPOINT_SECRET,
-  success,
   SupaStripeStackError,
   parseData,
 } from "~/utils";
@@ -41,173 +39,119 @@ async function getStripeEvent(request: Request) {
       STRIPE_ENDPOINT_SECRET
     );
 
-    return success(event);
+    return event;
   } catch (cause) {
-    return failure({
-      cause,
-      message: "Unable to construct Strip event",
-      tag,
-    });
+    throw response.error(
+      new SupaStripeStackError({
+        cause,
+        message: "Unable to construct Strip event",
+        tag,
+      }),
+      { authSession: null }
+    );
   }
 }
 
 export async function action({ request }: ActionArgs) {
-  const stripeEvent = await getStripeEvent(request);
-
-  if (stripeEvent.error) {
-    return response.serverError(stripeEvent.error, { authSession: null });
-  }
-
-  const event = stripeEvent.data;
+  const event = await getStripeEvent(request);
   const eventId = event.id;
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const payload = await parseData(
-        event.data.object,
-        z.object({
-          subscription: z.string(),
-          payment_status: z.literal("paid"),
-        }),
-        `${event.type} payload is malformed`
-      );
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const { id } = await parseData(
+          event.data.object,
+          z
+            .object({
+              subscription: z.string(),
+              payment_status: z.literal("paid"),
+            })
+            .transform(({ subscription }) => ({ id: subscription })),
+          `${event.type} payload is malformed`
+        );
 
-      if (payload.error) {
-        payload.error.traceId = eventId;
-        return response.badRequest(payload.error, { authSession: null });
-      }
+        const subscription = await fetchSubscription(id);
 
-      const id = payload.data.subscription;
-
-      const subscription = await fetchSubscription(id);
-
-      if (subscription.error) {
-        subscription.error.traceId = eventId;
-        return response.serverError(subscription.error, { authSession: null });
-      }
-
-      const createdSubscription = await createSubscription({
-        id,
-        ...subscription.data,
-      });
-
-      if (createdSubscription.error) {
-        createdSubscription.error.traceId = eventId;
-        return response.serverError(createdSubscription.error, {
-          authSession: null,
+        const createdSubscription = await createSubscription({
+          id,
+          ...subscription,
         });
+
+        return response.ok(createdSubscription, { authSession: null });
       }
 
-      return response.ok(createdSubscription, { authSession: null });
-    }
+      case "customer.subscription.updated": {
+        const { id } = await parseData(
+          event.data.object,
+          z.object({
+            id: z.string(),
+          }),
+          `${event.type} payload is malformed`
+        );
 
-    case "customer.subscription.updated": {
-      const payload = await parseData(
-        event.data.object,
-        z.object({
-          id: z.string(),
-        }),
-        `${event.type} payload is malformed`
-      );
+        const subscription = await fetchSubscription(id);
 
-      if (payload.error) {
-        payload.error.traceId = eventId;
-        return response.badRequest(payload.error, { authSession: null });
+        const updatedSubscription = await updateSubscription(subscription);
+
+        return response.ok(updatedSubscription, { authSession: null });
       }
 
-      const { id } = payload.data;
+      case "customer.subscription.deleted": {
+        const { id, customer: customerId } = await parseData(
+          event.data.object,
+          z.object({
+            id: z.string(),
+            customer: z.string(),
+          }),
+          `${event.type} payload is malformed`
+        );
 
-      const subscription = await fetchSubscription(id);
-
-      if (subscription.error) {
-        subscription.error.traceId = eventId;
-        return response.serverError(subscription.error, { authSession: null });
-      }
-
-      const updatedSubscription = await updateSubscription(subscription.data);
-
-      if (updatedSubscription.error) {
-        updatedSubscription.error.traceId = eventId;
-        return response.serverError(updatedSubscription.error, {
-          authSession: null,
+        const deletedSubscription = await deleteSubscription({
+          id,
+          customerId,
         });
+
+        return response.ok(deletedSubscription, { authSession: null });
       }
 
-      return response.ok(updatedSubscription, { authSession: null });
-    }
+      case "product.updated": {
+        const { tierId, active, description, name } = await parseData(
+          event.data.object,
+          z
+            .object({
+              id: z.nativeEnum(TierId),
+              active: z.boolean(),
+              name: z.string(),
+              description: z.string().nullable(),
+            })
+            .transform(({ id: tierId, active, name, description }) => ({
+              tierId,
+              active,
+              name,
+              description,
+            })),
+          `${event.type} payload is malformed`
+        );
 
-    case "customer.subscription.deleted": {
-      const payload = await parseData(
-        event.data.object,
-        z.object({
-          id: z.string(),
-          customer: z.string(),
-        }),
-        `${event.type} payload is malformed`
-      );
-
-      if (payload.error) {
-        payload.error.traceId = eventId;
-        return response.badRequest(payload.error, { authSession: null });
-      }
-
-      const { id, customer: customerId } = payload.data;
-
-      const deletedSubscription = await deleteSubscription({
-        id,
-        customerId,
-      });
-
-      if (deletedSubscription.error) {
-        deletedSubscription.error.traceId = eventId;
-        return response.serverError(deletedSubscription.error, {
-          authSession: null,
+        const updatedTier = await updateTier(tierId, {
+          active,
+          description,
+          name,
         });
-      }
 
-      return response.ok(deletedSubscription, { authSession: null });
+        return response.ok(updatedTier, { authSession: null });
+      }
     }
 
-    case "product.updated": {
-      const payload = await parseData(
-        event.data.object,
-        z
-          .object({
-            id: z.nativeEnum(TierId),
-            active: z.boolean(),
-            name: z.string(),
-            description: z.string().nullable(),
-          })
-          .transform(({ id: tierId, active, name, description }) => ({
-            tierId,
-            active,
-            name,
-            description,
-          })),
-        `${event.type} payload is malformed`
-      );
+    return response.ok({}, { authSession: null });
+  } catch (cause) {
+    const reason = new SupaStripeStackError({
+      cause,
+      message: "An error occurred while handling Stripe webhook",
+      metadata: { eventId },
+      tag,
+    });
 
-      if (payload.error) {
-        payload.error.traceId = eventId;
-        return response.badRequest(payload.error, { authSession: null });
-      }
-
-      const { tierId, active, description, name } = payload.data;
-
-      const updatedTier = await updateTier(tierId, {
-        active,
-        description,
-        name,
-      });
-
-      if (updatedTier.error) {
-        updatedTier.error.traceId = eventId;
-        return response.serverError(updatedTier.error, { authSession: null });
-      }
-
-      return response.ok(updatedTier, { authSession: null });
-    }
+    return response.error(reason, { authSession: null });
   }
-
-  return response.ok(success(null), { authSession: null });
 }

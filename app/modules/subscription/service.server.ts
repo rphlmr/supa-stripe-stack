@@ -5,8 +5,7 @@ import { stripe } from "~/integrations/stripe";
 import { Currency } from "~/modules/price";
 import { TierId } from "~/modules/tier";
 import type { User } from "~/modules/user";
-import { toDate, parseData } from "~/utils";
-import { failure, success } from "~/utils/resolvers";
+import { toDate, parseData, SupaStripeStackError } from "~/utils";
 
 import type { Subscription } from "./types";
 import { SubscriptionStatus } from "./types";
@@ -72,13 +71,9 @@ export async function fetchSubscription(id: string) {
       "Stripe subscription fetch result is malformed"
     );
 
-    if (subscription.error) {
-      throw subscription.error;
-    }
-
-    return success(subscription.data);
+    return subscription;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to retrieve subscription",
       metadata: { id },
@@ -103,7 +98,7 @@ export async function getSubscription(userId: string) {
     });
 
     if (!subscription) {
-      return success(null);
+      return null;
     }
 
     const {
@@ -111,9 +106,9 @@ export async function getSubscription(userId: string) {
       ...userSubscription
     } = subscription;
 
-    return success({ interval, ...userSubscription });
+    return { interval, ...userSubscription };
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to get subscription",
       metadata: { userId },
@@ -160,9 +155,9 @@ export async function createSubscription({
       select: { createdAt: true, id: true },
     });
 
-    return success(newSubscription);
+    return newSubscription;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to create subscription",
       metadata: { customerId, tierId, id, priceId, itemId },
@@ -213,9 +208,9 @@ export async function updateSubscription({
       select: { updatedAt: true, id: true },
     });
 
-    return success(updatedSubscription);
+    return updatedSubscription;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to update subscription",
       metadata: {
@@ -245,9 +240,9 @@ export async function deleteSubscription({
       db.subscription.delete({ where: { id }, select: { id: true } }),
     ]);
 
-    return success({ id, deleted: true });
+    return { id, deleted: true };
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to cancel subscription",
       metadata: { id, customerId },

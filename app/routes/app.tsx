@@ -14,7 +14,13 @@ import { Button, ButtonLink } from "~/components";
 import { requireAuthSession } from "~/modules/auth";
 import { createNote, updateNote, deleteNote, getNotes } from "~/modules/note";
 import { getUserTierLimit } from "~/modules/user";
-import { isFormProcessing, tw, response, parseData } from "~/utils";
+import {
+  isFormProcessing,
+  tw,
+  response,
+  parseData,
+  SupaStripeStackError,
+} from "~/utils";
 
 /**
  * This route is just a simple example to show how to use tier limits
@@ -25,31 +31,25 @@ export async function loader({ request }: LoaderArgs) {
   const authSession = await requireAuthSession(request);
   const { userId } = authSession;
 
-  const [userNotes, userThreshold] = await Promise.all([
-    getNotes({ userId }),
-    getUserTierLimit(userId),
-  ]);
+  try {
+    const [notes, { maxNumberOfNotes }] = await Promise.all([
+      getNotes({ userId }),
+      getUserTierLimit(userId),
+    ]);
 
-  if (userNotes.error) {
-    throw response.serverError(userNotes.error, { authSession });
+    return response.ok(
+      {
+        notes,
+        isNotesThresholdReached: Boolean(
+          maxNumberOfNotes && notes.length >= maxNumberOfNotes
+        ),
+        maxNumberOfNotes,
+      },
+      { authSession }
+    );
+  } catch (cause) {
+    throw response.error(cause, { authSession });
   }
-
-  if (userThreshold.error) {
-    throw response.serverError(userThreshold.error, { authSession });
-  }
-
-  const { maxNumberOfNotes } = userThreshold.data;
-
-  return response.ok(
-    {
-      notes: userNotes.data,
-      isNotesThresholdReached: Boolean(
-        maxNumberOfNotes && userNotes.data.length >= maxNumberOfNotes
-      ),
-      maxNumberOfNotes,
-    },
-    { authSession }
-  );
 }
 
 const NoteFormSchema = z.object({
@@ -58,125 +58,94 @@ const NoteFormSchema = z.object({
 
 export async function action({ request }: ActionArgs) {
   const authSession = await requireAuthSession(request);
-
   const { userId } = authSession;
 
-  switch (request.method.toLowerCase()) {
-    case "post": {
-      const payload = await parseData(
-        parseFormAny(await request.formData()),
-        NoteFormSchema,
-        "Payload is invalid"
-      );
+  try {
+    switch (request.method.toLowerCase()) {
+      case "post": {
+        const payload = await parseData(
+          parseFormAny(await request.formData()),
+          NoteFormSchema,
+          "Payload is invalid"
+        );
 
-      if (payload.error) {
-        return response.badRequest(payload.error, { authSession });
-      }
+        const [notes, { maxNumberOfNotes }] = await Promise.all([
+          getNotes({ userId }),
+          getUserTierLimit(userId),
+        ]);
 
-      const [userNotes, userThreshold] = await Promise.all([
-        getNotes({ userId }),
-        getUserTierLimit(userId),
-      ]);
-
-      if (userNotes.error) {
-        return response.serverError(userNotes.error, { authSession });
-      }
-
-      if (userThreshold.error) {
-        return response.serverError(userThreshold.error, { authSession });
-      }
-
-      const { maxNumberOfNotes } = userThreshold.data;
-      const notes = userNotes.data;
-
-      if (maxNumberOfNotes && notes.length >= maxNumberOfNotes) {
-        return response.badRequest(
-          {
+        if (maxNumberOfNotes && notes.length >= maxNumberOfNotes) {
+          throw new SupaStripeStackError({
             message: "You have reached your notes limit",
             metadata: {
               userId,
               maxNumberOfNotes,
               notesCount: notes.length,
             },
-          },
+          });
+        }
+
+        const { content } = payload;
+
+        const createResult = await createNote({
+          userId,
+          content,
+        });
+
+        return response.ok(createResult, { authSession });
+      }
+      case "patch": {
+        const payload = await parseData(
+          parseFormAny(await request.formData()),
+          NoteFormSchema.extend({
+            id: z.string(),
+          }),
+          "Payload is invalid"
+        );
+
+        const { content, id } = payload;
+
+        const updateResult = await updateNote({
+          userId,
+          content,
+          id,
+        });
+
+        return response.ok(updateResult, { authSession });
+      }
+      case "delete": {
+        const payload = await parseData(
+          parseFormAny(await request.formData()),
+          z.object({
+            id: z.string(),
+          }),
+          "Payload is invalid"
+        );
+
+        const { id } = payload;
+
+        const deleteResult = await deleteNote({ id, userId });
+
+        return response.ok(deleteResult, { authSession });
+      }
+      default: {
+        return response.error(
+          new SupaStripeStackError({
+            message: "Invalid HTTP method",
+          }),
           { authSession }
         );
       }
-
-      const { content } = payload.data;
-
-      const createResult = await createNote({
-        userId,
-        content,
-      });
-
-      if (createResult.error) {
-        return response.serverError(createResult.error, { authSession });
-      }
-
-      return response.ok(createResult.data, { authSession });
     }
-    case "patch": {
-      const payload = await parseData(
-        parseFormAny(await request.formData()),
-        NoteFormSchema.extend({
-          id: z.string(),
-        }),
-        "Payload is invalid"
-      );
-
-      if (payload.error) {
-        return response.badRequest(payload.error, { authSession });
-      }
-
-      const { content, id } = payload.data;
-
-      const updateResult = await updateNote({
-        userId,
-        content,
-        id,
-      });
-
-      if (updateResult.error) {
-        return response.serverError(updateResult.error, { authSession });
-      }
-
-      return response.ok(updateResult.data, { authSession });
-    }
-    case "delete": {
-      const payload = await parseData(
-        parseFormAny(await request.formData()),
-        z.object({
-          id: z.string(),
-        }),
-        "Payload is invalid"
-      );
-
-      if (payload.error) {
-        return response.badRequest(payload.error, { authSession });
-      }
-
-      const { id } = payload.data;
-      const deleteResult = await deleteNote({ id, userId });
-
-      if (deleteResult.error) {
-        return response.serverError(deleteResult.error, { authSession });
-      }
-
-      return response.ok(deleteResult.data, { authSession });
-    }
+  } catch (cause) {
+    return response.error(cause, { authSession });
   }
-
-  return response.badRequest(
-    { message: "Invalid HTTP method" },
-    { authSession }
-  );
 }
 
 export default function App() {
   const { notes, isNotesThresholdReached, maxNumberOfNotes } =
-    useLoaderData<typeof loader>().data;
-  const { id } = useActionData<typeof action>()?.data || {};
+    useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const zo = useZorm("New note", NoteFormSchema);
 
   const transition = useTransition();
@@ -192,7 +161,12 @@ export default function App() {
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <Form key={id} ref={zo.ref} method="post" className="relative">
+        <Form
+          key={!actionData?.error ? actionData?.id : "new-post"}
+          ref={zo.ref}
+          method="post"
+          className="relative"
+        >
           <div
             className={tw(
               "overflow-hidden rounded-lg border-2 border-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 focus-within:border-black focus-within:ring-1 focus-within:ring-black",

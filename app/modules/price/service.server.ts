@@ -1,12 +1,12 @@
 import { db } from "~/database";
-import { failure, success, SupaStripeStackError } from "~/utils/resolvers";
+import { SupaStripeStackError } from "~/utils";
 
 import type { Currency } from "./types";
 
 const tag = "Price service 💰";
 
 export type PricingPlan = NonNullable<
-  Awaited<ReturnType<typeof getPricingPlan>>["data"]
+  Awaited<ReturnType<typeof getPricingPlan>>
 >;
 
 export async function getPricingPlan(currency: Currency) {
@@ -53,9 +53,9 @@ export async function getPricingPlan(currency: Currency) {
       };
     });
 
-    return success(pricingPlan);
+    return pricingPlan;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: `Unable to get pricing plan`,
       metadata: { currency },

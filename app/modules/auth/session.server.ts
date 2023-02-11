@@ -7,9 +7,8 @@ import {
   NODE_ENV,
   safeRedirect,
   SESSION_SECRET,
+  Logger,
 } from "~/utils";
-import { Logger } from "~/utils/logger";
-import { failure, success } from "~/utils/resolvers";
 
 import { refreshAccessToken, verifyAuthSession } from "./service.server";
 import type { AuthSession } from "./types";
@@ -55,31 +54,15 @@ export async function createAuthSession({
 }
 
 async function getSession(request: Request) {
-  try {
-    const cookie = request.headers.get("Cookie");
-    const session = await sessionStorage.getSession(cookie);
+  const cookie = request.headers.get("Cookie");
+  const session = await sessionStorage.getSession(cookie);
 
-    return success(session);
-  } catch (cause) {
-    return failure({
-      cause,
-      message: "Failed to retrieve session",
-      metadata: { headers: request.headers },
-      tag: "Auth session cookie 🍪",
-    });
-  }
+  return session;
 }
 
 async function getAuthSession(request: Request): Promise<AuthSession | null> {
   const session = await getSession(request);
-
-  if (session.error) {
-    Logger.error(session.error);
-
-    return null;
-  }
-
-  const authSession = session.data.get(SESSION_KEY);
+  const authSession = session.get(SESSION_KEY);
 
   if (!authSession) {
     return null;
@@ -103,21 +86,15 @@ async function commitAuthSession(
 ) {
   const session = await getSession(request);
 
-  if (session.error) {
-    Logger.error(session.error);
-
-    return "";
-  }
-
   // allow user session to be null.
   // useful you want to clear session and display a message explaining why
   if (authSession !== undefined) {
-    session.data.set(SESSION_KEY, authSession);
+    session.set(SESSION_KEY, authSession);
   }
 
-  session.data.flash(SESSION_ERROR_KEY, options.flashErrorMessage);
+  session.flash(SESSION_ERROR_KEY, options.flashErrorMessage);
 
-  return sessionStorage.commitSession(session.data, {
+  return sessionStorage.commitSession(session, {
     maxAge: SESSION_MAX_AGE,
   });
 }
@@ -125,15 +102,9 @@ async function commitAuthSession(
 export async function destroyAuthSession(request: Request) {
   const session = await getSession(request);
 
-  if (session.error) {
-    return;
-  }
-
   return response.redirect("/", {
     authSession: null,
-    headers: [
-      ["Set-Cookie", await sessionStorage.destroySession(session.data)],
-    ],
+    headers: [["Set-Cookie", await sessionStorage.destroySession(session)]],
   });
 }
 
@@ -203,7 +174,7 @@ export async function requireAuthSession(
 
   // damn, access token is not valid or expires soon
   // let's try to refresh, in case of 🧐
-  if (validation.error || isExpiringSoon(authSession.expiresAt)) {
+  if (!validation.success || isExpiringSoon(authSession.expiresAt)) {
     return refreshAuthSession(request);
   }
 
@@ -230,9 +201,7 @@ async function refreshAuthSession(
 
   // 👾 game over, log in again
   // yes, arbitrary, but it's a good way to don't let an illegal user here with an expired token
-  if (refreshedAuthSession.error) {
-    Logger.error(refreshedAuthSession.error);
-
+  if (!refreshedAuthSession) {
     const redirectUrl = `${LOGIN_URL}?${makeRedirectToFromHere(request)}`;
 
     // here we throw instead of return because this function promise a AuthSession and not a response object
@@ -250,11 +219,9 @@ async function refreshAuthSession(
     });
   }
 
-  const newAuthSession = refreshedAuthSession.data;
-
   return {
-    ...newAuthSession,
+    ...refreshedAuthSession,
     // the cookie to set in the response
-    cookie: await commitAuthSession(request, newAuthSession),
+    cookie: await commitAuthSession(request, refreshedAuthSession),
   };
 }

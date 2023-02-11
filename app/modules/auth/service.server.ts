@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "~/integrations/supabase";
-import { failure, success, SupaStripeStackError } from "~/utils/resolvers";
+import { Logger, SupaStripeStackError } from "~/utils";
 
 import { mapAuthSession } from "./mappers";
 import type { AuthSession } from "./types";
@@ -22,9 +22,9 @@ export async function createEmailAuthAccount(email: string, password: string) {
 
     const { id, created_at } = data.user;
 
-    return success({ id, createdAt: created_at });
+    return { id, createdAt: created_at };
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: `Failed to create user account`,
       metadata: { email },
@@ -48,17 +48,43 @@ export async function signInWithEmail(email: string, password: string) {
 
     if (!session) {
       throw new SupaStripeStackError({
-        cause: null,
         message:
           "The signed in with email session returned by Supabase is null",
       });
     }
 
-    return success(mapAuthSession(session));
+    return mapAuthSession(session);
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: `Failed to sign in with email`,
+      metadata: { email },
+      tag,
+    });
+  }
+}
+
+async function getUserByEmail(email: string) {
+  try {
+    const { data, error } = await supabaseAdmin().auth.admin.listUsers();
+
+    if (error) {
+      throw error;
+    }
+
+    const user = data.users.find((user) => user.email === email);
+
+    if (!user) {
+      throw new SupaStripeStackError({
+        message: `No user found with email`,
+      });
+    }
+
+    return user;
+  } catch (cause) {
+    throw new SupaStripeStackError({
+      cause,
+      message: `Failed to get user by email`,
       metadata: { email },
       tag,
     });
@@ -72,10 +98,8 @@ export async function deleteAuthAccount(userId: string) {
     if (error) {
       throw error;
     }
-
-    return success({ success: true });
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: `Failed to delete user account. Please manually delete the user account in the Supabase dashboard.`,
       metadata: { userId },
@@ -84,39 +108,62 @@ export async function deleteAuthAccount(userId: string) {
   }
 }
 
-export async function refreshAccessToken(refreshToken?: string) {
-  if (!refreshToken) {
-    return failure({
-      cause: "No refresh token provided",
-      message: `Failed to refresh access token`,
-      tag,
-    });
-  }
-
+export async function deleteAuthAccountByEmail(email: string) {
   try {
+    const { id } = await getUserByEmail(email);
+
+    await deleteAuthAccount(id);
+  } catch (cause) {
+    Logger.error(
+      new SupaStripeStackError({
+        cause,
+        message: `Failed to delete user account. Please manually delete the user account in the Supabase dashboard.`,
+        metadata: { email },
+        tag,
+      })
+    );
+  }
+}
+
+/**
+ * Try to refresh the access token and return the new auth session or null.
+ */
+export async function refreshAccessToken(refreshToken?: string) {
+  try {
+    if (!refreshToken) {
+      throw new SupaStripeStackError({
+        message: `No refresh token provided`,
+      });
+    }
+
     const { data, error } = await supabaseAdmin().auth.refreshSession({
       refresh_token: refreshToken,
     });
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const { session } = data;
 
     if (!session) {
       throw new SupaStripeStackError({
-        cause: null,
         message: "The refreshed session returned by Supabase is null",
       });
     }
 
-    return success(mapAuthSession(session));
+    return mapAuthSession(session);
   } catch (cause) {
-    return failure({
-      cause,
-      message: `Failed to refresh access token`,
-      metadata: { refreshToken },
-      tag,
-    });
+    Logger.error(
+      new SupaStripeStackError({
+        cause,
+        message: `Failed to refresh access token`,
+        metadata: { refreshToken },
+        tag,
+      })
+    );
+
+    return null;
   }
 }
 
@@ -126,7 +173,7 @@ export async function verifyAuthSession(
 ) {
   try {
     if (skip) {
-      return success({ success: true });
+      return { success: true };
     }
 
     const { error } = await supabaseAdmin().auth.getUser(
@@ -137,13 +184,17 @@ export async function verifyAuthSession(
       throw error;
     }
 
-    return success({ success: true });
+    return { success: true };
   } catch (cause) {
-    return failure({
-      cause,
-      message: "Failed to verify auth session",
-      metadata: { userId: authSession.userId },
-      tag,
-    });
+    Logger.error(
+      new SupaStripeStackError({
+        cause,
+        message: "Failed to verify auth session",
+        metadata: { userId: authSession.userId },
+        tag,
+      })
+    );
+
+    return { success: false };
   }
 }

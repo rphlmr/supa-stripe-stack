@@ -1,5 +1,5 @@
 import { db } from "~/database";
-import { failure, success } from "~/utils/resolvers";
+import { SupaStripeStackError } from "~/utils";
 
 import type { Note } from "./types";
 
@@ -13,11 +13,12 @@ export async function getNotes({ userId }: Pick<Note, "userId">) {
       orderBy: { updatedAt: "desc" },
     });
 
-    return success(result);
+    return result;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: `Unable to get notes`,
+      status: 404,
       metadata: { userId },
       tag,
     });
@@ -38,9 +39,9 @@ export async function createNote({
       select: { id: true, updatedAt: true },
     });
 
-    return success(result);
+    return result;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: `Unable to create the note`,
       metadata: { userId, content },
@@ -63,9 +64,9 @@ export async function updateNote({
       select: { id: true, updatedAt: true },
     });
 
-    return success(result);
+    return result;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: `Unable to create the note`,
       metadata: { userId, content },
@@ -81,9 +82,9 @@ export async function deleteNote({ id, userId }: Pick<Note, "id" | "userId">) {
       select: { id: true },
     });
 
-    return success(result);
+    return result;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: `Unable to delete the note`,
       metadata: { userId, id },

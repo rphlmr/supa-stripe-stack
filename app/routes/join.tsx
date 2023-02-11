@@ -1,23 +1,38 @@
 import * as React from "react";
 
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
-import { Form, Link, useSearchParams, useTransition } from "@remix-run/react";
+import {
+  Form,
+  Link,
+  useActionData,
+  useSearchParams,
+  useTransition,
+} from "@remix-run/react";
 import { parseFormAny, useZorm } from "react-zorm";
 import { z } from "zod";
 
 import { Button } from "~/components";
 import { createAuthSession, isAnonymousSession } from "~/modules/auth";
 import { getUserByEmail, createUserAccount } from "~/modules/user";
-import { response, isFormProcessing, parseData } from "~/utils";
+import {
+  response,
+  isFormProcessing,
+  parseData,
+  SupaStripeStackError,
+} from "~/utils";
 
 export async function loader({ request }: LoaderArgs) {
-  const isAnonymous = await isAnonymousSession(request);
+  try {
+    const isAnonymous = await isAnonymousSession(request);
 
-  if (!isAnonymous) {
-    return response.redirect("/app", { authSession: null });
+    if (!isAnonymous) {
+      return response.redirect("/app", { authSession: null });
+    }
+
+    return response.ok({}, { authSession: null });
+  } catch (cause) {
+    throw response.error(cause, { authSession: null });
   }
-
-  return response.ok(null, { authSession: null });
 }
 
 const JoinFormSchema = z.object({
@@ -31,53 +46,44 @@ const JoinFormSchema = z.object({
 });
 
 export async function action({ request }: ActionArgs) {
-  const payload = await parseData(
-    parseFormAny(await request.formData()),
-    JoinFormSchema,
-    "Join form payload is invalid"
-  );
-
-  if (payload.error) {
-    return response.badRequest(payload.error, { authSession: null });
-  }
-
-  const { email, password, name, redirectTo } = payload.data;
-
-  const existingUser = await getUserByEmail(email);
-
-  if (existingUser.error) {
-    return response.serverError(existingUser.error, { authSession: null });
-  }
-
-  if (existingUser.data) {
-    return response.serverError(
-      {
-        message: "This email has already been used",
-        metadata: { email },
-      },
-      { authSession: null }
+  try {
+    const payload = await parseData(
+      parseFormAny(await request.formData()),
+      JoinFormSchema,
+      "Join form payload is invalid"
     );
+
+    const { email, password, name, redirectTo } = payload;
+
+    const existingUser = await getUserByEmail(email);
+
+    if (existingUser) {
+      throw new SupaStripeStackError({
+        message: "This email has already been used",
+        status: 403,
+        metadata: { email },
+      });
+    }
+
+    const authSession = await createUserAccount({
+      email,
+      password,
+      name,
+    });
+
+    return createAuthSession({
+      request,
+      authSession,
+      redirectTo: redirectTo || "/app",
+    });
+  } catch (cause) {
+    return response.error(cause, { authSession: null });
   }
-
-  const authSession = await createUserAccount({
-    email,
-    password,
-    name,
-  });
-
-  if (authSession.error) {
-    return response.serverError(authSession.error, { authSession: null });
-  }
-
-  return createAuthSession({
-    request,
-    authSession: authSession.data,
-    redirectTo: redirectTo || "/app",
-  });
 }
 
 export default function Join() {
   const zo = useZorm("NewQuestionWizardScreen", JoinFormSchema);
+  const actionResponse = useActionData<typeof action>();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? undefined;
   const transition = useTransition();
@@ -185,6 +191,11 @@ export default function Join() {
               </Link>
             </div>
           </div>
+          {actionResponse?.error ? (
+            <div className="pt-1 text-red-700" id="name-error">
+              {actionResponse.error.message}
+            </div>
+          ) : null}
         </Form>
       </div>
     </div>

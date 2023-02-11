@@ -6,9 +6,10 @@ import {
   signInWithEmail,
   deleteAuthAccount,
 } from "~/modules/auth";
-import { failure, success } from "~/utils/resolvers";
+import { SupaStripeStackError } from "~/utils";
 
 import type { User } from "./types";
+import { deleteAuthAccountByEmail } from "../auth/service.server";
 
 const tag = "User service 🧑";
 
@@ -21,11 +22,12 @@ export async function getUserByEmail(email: User["email"]) {
       where: { email: email.toLowerCase() },
     });
 
-    return success(user);
+    return user;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to get user by email",
+      status: 404,
       metadata: { email },
       tag,
     });
@@ -49,34 +51,15 @@ async function createUser({ email, userId, name }: UserCreatePayload) {
       },
     });
 
-    return success(user);
+    return user;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
-      message: "Unable to create user",
+      message: "Unable to create user in database or stripe",
       metadata: { email, userId, name },
       tag,
     });
   }
-}
-
-async function tryCreateUser({ email, userId, name }: UserCreatePayload) {
-  const user = await createUser({
-    userId,
-    email,
-    name,
-  });
-
-  // At this point, user auth account is created but we are unable to store it in User table
-  // We should delete the user account to allow retry create account again
-  if (user.error) {
-    // We mostly trust that it will be deleted.
-    // If it's not the case, the user will face on a "user already exists" kind of error.
-    // It'll require manual intervention to remove the account in Supabase Auth dashboard.
-    await deleteAuthAccount(userId);
-  }
-
-  return user;
 }
 
 export async function createUserAccount(payload: {
@@ -87,40 +70,23 @@ export async function createUserAccount(payload: {
   const { email, password, name } = payload;
 
   try {
-    const newAuthAccount = await createEmailAuthAccount(email, password);
-
-    // ok, no user account created
-    if (newAuthAccount.error) {
-      throw newAuthAccount.error;
-    }
-
+    const { id: userId } = await createEmailAuthAccount(email, password);
     const authSession = await signInWithEmail(email, password);
-
-    // At this point, user auth account is created but we are unable to sign in
-    // We should delete the user account to allow retry create account again
-    if (authSession.error) {
-      // We mostly trust that it will be deleted.
-      // If it's not the case, the user will face on a "user already exists" kind of error.
-      // It'll require manual intervention to remove the account in Supabase Auth dashboard.
-      await deleteAuthAccount(newAuthAccount.data.id);
-      throw authSession.error;
-    }
-
-    const { id: userId } = newAuthAccount.data;
-
-    const user = await tryCreateUser({
+    await createUser({
       email,
       userId,
       name,
     });
 
-    if (user.error) {
-      throw user.error;
-    }
-
-    return success(authSession.data);
+    return authSession;
   } catch (cause) {
-    return failure({
+    // We should delete the user account to allow retry create account again
+    // We mostly trust that it will be deleted.
+    // If it's not the case, the user will face on a "user already exists" kind of error.
+    // It'll require manual intervention to remove the account in Supabase Auth dashboard.
+    await deleteAuthAccountByEmail(email);
+
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to create user account",
       metadata: { email, name },
@@ -142,11 +108,12 @@ export async function getUserTierLimit(id: User["id"]) {
       },
     });
 
-    return success(tierLimit);
+    return tierLimit;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to find user tier limit",
+      status: 404,
       metadata: { id },
       tag,
     });
@@ -162,11 +129,12 @@ export async function getUserTier(id: User["id"]) {
       },
     });
 
-    return success(tier);
+    return tier;
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to find user tier",
+      status: 404,
       metadata: { id },
       tag,
     });
@@ -183,11 +151,12 @@ export async function getBillingInfo(id: User["id"]) {
       },
     });
 
-    return success({ customerId, currency });
+    return { customerId, currency };
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
-      message: "Unable to find user stripe info",
+      message: "Unable to get billing info",
+      status: 404,
       metadata: { id },
       tag,
     });
@@ -196,19 +165,15 @@ export async function getBillingInfo(id: User["id"]) {
 
 export async function deleteUser(id: User["id"]) {
   try {
-    const { data, error } = await getBillingInfo(id);
+    const { customerId } = await getBillingInfo(id);
 
-    if (error) {
-      throw error;
-    }
-
-    await stripe.customers.del(data.customerId);
+    await stripe.customers.del(customerId);
     await deleteAuthAccount(id);
     await db.user.delete({ where: { id } });
 
-    return success(true);
+    return { success: true };
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Oups, unable to delete your test account",
       metadata: { id },

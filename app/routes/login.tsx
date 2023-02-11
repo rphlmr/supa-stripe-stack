@@ -1,5 +1,11 @@
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
-import { Form, Link, useSearchParams, useTransition } from "@remix-run/react";
+import {
+  Form,
+  Link,
+  useActionData,
+  useSearchParams,
+  useTransition,
+} from "@remix-run/react";
 import { parseFormAny, useZorm } from "react-zorm";
 import { z } from "zod";
 
@@ -12,13 +18,17 @@ import {
 import { response, isFormProcessing, parseData } from "~/utils";
 
 export async function loader({ request }: LoaderArgs) {
-  const isAnonymous = await isAnonymousSession(request);
+  try {
+    const isAnonymous = await isAnonymousSession(request);
 
-  if (!isAnonymous) {
-    return response.redirect("/app", { authSession: null });
+    if (!isAnonymous) {
+      return response.redirect("/app", { authSession: null });
+    }
+
+    return response.ok({}, { authSession: null });
+  } catch (cause) {
+    return response.error(cause, { authSession: null });
   }
-
-  return response.ok(null, { authSession: null });
 }
 
 const LoginFormSchema = z.object({
@@ -31,33 +41,30 @@ const LoginFormSchema = z.object({
 });
 
 export async function action({ request }: ActionArgs) {
-  const payload = await parseData(
-    parseFormAny(await request.formData()),
-    LoginFormSchema,
-    "Login form payload is invalid"
-  );
+  try {
+    const payload = await parseData(
+      parseFormAny(await request.formData()),
+      LoginFormSchema,
+      "Login form payload is invalid"
+    );
 
-  if (payload.error) {
-    return response.badRequest(payload.error, { authSession: null });
+    const { email, password, redirectTo } = payload;
+
+    const authSession = await signInWithEmail(email, password);
+
+    return createAuthSession({
+      request,
+      authSession,
+      redirectTo: redirectTo || "/app",
+    });
+  } catch (cause) {
+    return response.error(cause, { authSession: null });
   }
-
-  const { email, password, redirectTo } = payload.data;
-
-  const authSession = await signInWithEmail(email, password);
-
-  if (authSession.error) {
-    return response.serverError(authSession.error, { authSession: null });
-  }
-
-  return createAuthSession({
-    request,
-    authSession: authSession.data,
-    redirectTo: redirectTo || "/app",
-  });
 }
 
 export default function LoginPage() {
   const zo = useZorm("Auth", LoginFormSchema);
+  const actionResponse = useActionData<typeof action>();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? undefined;
   const transition = useTransition();
@@ -141,6 +148,11 @@ export default function LoginPage() {
               </Link>
             </div>
           </div>
+          {actionResponse?.error ? (
+            <div className="pt-1 text-red-700" id="name-error">
+              {actionResponse.error.message}
+            </div>
+          ) : null}
         </Form>
       </div>
     </div>
