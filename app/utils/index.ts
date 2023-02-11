@@ -6,6 +6,7 @@ export * from "./form";
 export * from "./date";
 export * from "./locale-provider";
 export * from "./cookies";
-export * from "./resolvers";
+export * from "./error";
 export * from "./types";
 export * from "./zod";
+export * from "./logger";

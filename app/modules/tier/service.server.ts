@@ -1,18 +1,18 @@
 import { db } from "~/database";
-import { failure, success } from "~/utils/resolvers";
+import { SupaStripeStackError } from "~/utils";
 
 import type { TierId, Tier } from "./types";
 
 const tag = "Tier service 📊";
 
 export async function updateTier(
-  id: TierId,
+  tierId: TierId,
   { name, active, description }: Pick<Tier, "name" | "active" | "description">
 ) {
   try {
-    const update = await db.tier.update({
+    const { id, updatedAt } = await db.tier.update({
       where: {
-        id,
+        id: tierId,
       },
       data: {
         name,
@@ -22,12 +22,12 @@ export async function updateTier(
       select: { updatedAt: true, id: true },
     });
 
-    return success(update);
+    return { id, updatedAt };
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to update tier",
-      metadata: { id, name, active, description },
+      metadata: { tierId, name, active, description },
       tag,
     });
   }

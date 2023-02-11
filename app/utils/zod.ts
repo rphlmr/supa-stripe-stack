@@ -1,6 +1,6 @@
 import type { z, ZodCustomIssue, ZodIssue } from "zod";
 
-import { failure, success } from "./resolvers";
+import { SupaStripeStackError } from "./error";
 
 type ZodCustomIssueWithMessage = ZodCustomIssue & { message: string };
 
@@ -40,12 +40,13 @@ export async function parseData<T extends z.ZodTypeAny>(
   if (!result.success) {
     const issues = result.error.issues;
 
-    return failure({
+    throw new SupaStripeStackError({
       message,
+      status: 400,
       metadata: { issues, data: sanitizeSensitiveData(data) },
       tag: "Payload validation 👾",
     });
   }
 
-  return success(result.data as z.infer<T>);
+  return result.data as z.infer<T>;
 }

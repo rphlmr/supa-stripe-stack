@@ -18,53 +18,46 @@ export async function loader({ request }: LoaderArgs) {
   const authSession = await requireAuthSession(request);
   const { userId } = authSession;
 
-  const [subscription, userTier, billingInfo] = await Promise.all([
-    getSubscription(userId),
-    getUserTier(userId),
-    getBillingInfo(userId),
-  ]);
+  try {
+    const [subscription, userTier, { currency }] = await Promise.all([
+      getSubscription(userId),
+      getUserTier(userId),
+      getBillingInfo(userId),
+    ]);
 
-  if (userTier.error) {
-    throw response.serverError(userTier.error, { authSession });
+    const pricingPlan = await getPricingPlan(
+      currency || getDefaultCurrency(request)
+    );
+
+    return response.ok(
+      {
+        pricingPlan,
+        userTier,
+        subscription,
+      },
+      { authSession }
+    );
+  } catch (cause) {
+    throw response.error(cause, { authSession });
   }
-
-  if (billingInfo.error) {
-    throw response.serverError(billingInfo.error, { authSession });
-  }
-
-  const pricingPlan = await getPricingPlan(
-    billingInfo.data.currency || getDefaultCurrency(request)
-  );
-
-  if (pricingPlan.error) {
-    throw response.serverError(pricingPlan.error, { authSession });
-  }
-
-  return response.ok(
-    {
-      pricingPlan: pricingPlan.data,
-      userTier: userTier.data,
-      subscription: subscription.data,
-    },
-    { authSession }
-  );
 }
 
 export async function action({ request }: ActionArgs) {
   const authSession = await requireAuthSession(request);
+  const { userId } = authSession;
 
-  const deleteResult = await deleteUser(authSession.userId);
+  try {
+    await deleteUser(userId);
 
-  if (deleteResult.error) {
-    return response.serverError(deleteResult.error, { authSession });
+    return destroyAuthSession(request);
+  } catch (cause) {
+    return response.error(cause, { authSession });
   }
-
-  return destroyAuthSession(request);
 }
 
 export default function Subscription() {
   const { pricingPlan, userTier, subscription } =
-    useLoaderData<typeof loader>().data;
+    useLoaderData<typeof loader>();
   const customerPortalFetcher = useFetcher();
   const isProcessing = isFormProcessing(customerPortalFetcher.state);
 

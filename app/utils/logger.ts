@@ -12,26 +12,26 @@ const logger = pino({
  * You could interface with a logging service like Sentry or LogRocket here.
  */
 export class Logger {
-  static dev(...args: any[]) {
+  static dev(...args: unknown[]) {
     if (NODE_ENV === "development") {
       logger.debug(args);
     }
   }
-  static devError(...args: any[]) {
+  static devError(...args: unknown[]) {
     if (NODE_ENV === "development") {
       logger.error(args);
     }
   }
-  static log(...args: any[]) {
+  static log(...args: unknown[]) {
     logger.info(args);
   }
-  static warn(...args: any[]) {
+  static warn(...args: unknown[]) {
     logger.warn(args);
   }
-  static info(...args: any[]) {
+  static info(...args: unknown[]) {
     logger.info(args);
   }
-  static error(...args: any[]) {
-    logger.error(args);
+  static error(error: unknown) {
+    logger.error(error);
   }
 }

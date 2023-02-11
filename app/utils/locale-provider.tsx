@@ -2,6 +2,8 @@ import React, { createContext, useContext, useMemo } from "react";
 
 import type { Locales } from "remix-utils";
 
+import { SupaStripeStackError } from "./error";
+
 type LocaleContext = {
   locales: Locales;
   timeZone: string;
@@ -29,7 +31,9 @@ export const useLocales = () => {
   const context = useContext(Context);
 
   if (!context) {
-    throw new Error(`useLocales must be used within a LocaleProvider.`);
+    throw new SupaStripeStackError({
+      message: `useLocales must be used within a LocaleProvider.`,
+    });
   }
   return context;
 };

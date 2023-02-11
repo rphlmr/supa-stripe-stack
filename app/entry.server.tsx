@@ -7,7 +7,7 @@ import isbot from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { getClientLocales } from "remix-utils";
 
-import { LocaleProvider, getCookie } from "~/utils";
+import { LocaleProvider, getCookie, Logger } from "~/utils";
 
 const ABORT_DELAY = 5000;
 
@@ -50,8 +50,7 @@ export default function handleRequest(
         },
         onError(error: unknown) {
           didError = true;
-          // eslint-disable-next-line no-console
-          console.error(error);
+          Logger.error(error);
         },
       }
     );

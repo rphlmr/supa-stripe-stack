@@ -1,6 +1,5 @@
 import { stripe } from "~/integrations/stripe";
-import { SERVER_URL } from "~/utils";
-import { failure, success } from "~/utils/resolvers";
+import { SERVER_URL, SupaStripeStackError } from "~/utils";
 
 const tag = "Billing portal service 📊";
 
@@ -11,9 +10,9 @@ export async function createBillingPortalSession(customerId: string) {
       return_url: `${SERVER_URL}/subscription`,
     });
 
-    return success({ url });
+    return { url };
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to create billing portal session",
       metadata: { customerId },

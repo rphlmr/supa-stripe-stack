@@ -11,22 +11,22 @@ export async function loader({ request }: LoaderArgs) {
   const authSession = await requireAuthSession(request);
   const { userId } = authSession;
 
-  const subscription = await getSubscription(userId);
+  try {
+    const subscription = await getSubscription(userId);
 
-  if (subscription.error) {
-    throw response.serverError(subscription.error, { authSession });
+    return response.ok(
+      { pending: !subscription?.id },
+      {
+        authSession,
+      }
+    );
+  } catch (cause) {
+    throw response.error(cause, { authSession });
   }
-
-  return response.ok(
-    { pending: !subscription.data?.id },
-    {
-      authSession,
-    }
-  );
 }
 
 export default function Checkout() {
-  const { pending } = useLoaderData<typeof loader>().data;
+  const { pending } = useLoaderData<typeof loader>();
   const submit = useSubmit();
 
   useInterval(

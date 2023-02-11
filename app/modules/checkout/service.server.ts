@@ -1,6 +1,5 @@
 import { stripe } from "~/integrations/stripe";
-import { SERVER_URL } from "~/utils";
-import { failure, success, SupaStripeStackError } from "~/utils/resolvers";
+import { SERVER_URL, SupaStripeStackError } from "~/utils";
 
 const tag = "Checkout service 🛒";
 
@@ -33,9 +32,9 @@ export async function createCheckoutSession({
       });
     }
 
-    return success({ url });
+    return { url };
   } catch (cause) {
-    return failure({
+    throw new SupaStripeStackError({
       cause,
       message: "Unable to create checkout session",
       metadata: { customerId, priceId },

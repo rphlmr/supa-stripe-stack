@@ -9,19 +9,14 @@ export async function action({ request }: ActionArgs) {
   const authSession = await requireAuthSession(request);
   const { userId } = authSession;
 
-  const billingInfo = await getBillingInfo(userId);
+  try {
+    const { customerId } = await getBillingInfo(userId);
+    const { url } = await createBillingPortalSession(customerId);
 
-  if (billingInfo.error) {
-    return response.serverError(billingInfo.error, { authSession });
+    return response.redirect(url, { authSession });
+  } catch (cause) {
+    return response.error(cause, {
+      authSession,
+    });
   }
-
-  const billingPortalSession = await createBillingPortalSession(
-    billingInfo.data.customerId
-  );
-
-  if (billingPortalSession.error) {
-    return response.serverError(billingPortalSession.error, { authSession });
-  }
-
-  return response.redirect(billingPortalSession.data.url, { authSession });
 }

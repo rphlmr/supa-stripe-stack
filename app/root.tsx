@@ -18,7 +18,7 @@ import {
   useLocation,
 } from "@remix-run/react";
 
-import type { Failure } from "~/utils";
+import type { CatchResponse } from "~/utils";
 import { getBrowserEnv, tw, response } from "~/utils";
 
 import { isAnonymousSession, requireAuthSession } from "./modules/auth";
@@ -50,25 +50,26 @@ export async function loader({ request }: LoaderArgs) {
   }
 
   const authSession = await requireAuthSession(request);
+  const { userId, email } = authSession;
 
-  const userTier = await getUserTier(authSession.userId);
+  try {
+    const userTier = await getUserTier(userId);
 
-  if (userTier.error) {
-    throw response.serverError(userTier.error, { authSession });
+    return response.ok(
+      {
+        env: getBrowserEnv(),
+        email,
+        userTier,
+      },
+      { authSession }
+    );
+  } catch (cause) {
+    throw response.error(cause, { authSession });
   }
-
-  return response.ok(
-    {
-      env: getBrowserEnv(),
-      email: authSession?.email,
-      userTier: userTier.data,
-    },
-    { authSession }
-  );
 }
 
 export default function App() {
-  const { env } = useLoaderData<typeof loader>().data;
+  const { env } = useLoaderData<typeof loader>();
 
   return (
     <html className="h-full">
@@ -115,11 +116,13 @@ function NotifyError() {
   const [show, setShow] = useState(false);
   const fetchers = useFetchers();
 
-  const error = fetchers.map((f) => (f.data as Failure | null)?.error)[0];
+  const error = fetchers.map((f) => (f.data as CatchResponse | null)?.error)[0];
 
   useEffect(() => {
     if (error) {
       setShow(true);
+    } else {
+      setShow(false);
     }
   }, [error]);
 
@@ -198,7 +201,7 @@ const navigation = [
 ];
 
 function HeaderMenu() {
-  const { email, userTier } = useLoaderData<typeof loader>().data;
+  const { email, userTier } = useLoaderData<typeof loader>();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
