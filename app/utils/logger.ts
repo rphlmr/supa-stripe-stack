@@ -1,9 +1,33 @@
 import pino from "pino";
 
 import { NODE_ENV } from "./env";
+import { SupaStripeStackError } from "./error";
+
+function serializeError<E extends Error>(error: E): Error {
+  if (!(error.cause instanceof Error)) {
+    return {
+      ...error,
+      stack: error.stack,
+    };
+  }
+
+  return {
+    ...error,
+    cause: serializeError(error.cause),
+    stack: error.stack,
+  };
+}
 
 const logger = pino({
   level: "debug",
+  serializers: {
+    err: (cause) => {
+      if (!(cause instanceof SupaStripeStackError)) {
+        return pino.stdSerializers.err(cause);
+      }
+      return serializeError(cause);
+    },
+  },
 });
 
 /**
