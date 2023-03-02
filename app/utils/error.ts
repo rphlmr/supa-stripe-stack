@@ -45,10 +45,14 @@ export class SupaStripeStackError extends Error {
     super();
     this.name = "SupaStripeStackError 👀";
     this.message = message;
-    this.status = status;
+    this.status = isSupaStripeStackError(cause) ? cause.status : status;
     this.cause = cause;
     this.metadata = metadata;
     this.tag = tag;
     this.traceId = traceId || createId();
   }
+}
+
+function isSupaStripeStackError(cause: unknown): cause is SupaStripeStackError {
+  return cause instanceof SupaStripeStackError;
 }
