@@ -168,9 +168,13 @@ stripe listen --forward-to localhost:3000/api/webhook
 
 ## Start the server
 
+With the Stripe webhook listener running, open a new terminal and use the command to start a development server:
+
 ```sh
 npm run dev
 ```
+
+Both the listener and the development server must be running concurrently in separate terminals for the app to work.
 
 # Notes
 
