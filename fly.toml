@@ -1,48 +1,51 @@
+# fly.toml app configuration file generated for remix-supa-stripe-stack on 2023-06-29T08:39:34+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
 app = "remix-supa-stripe-stack"
+primary_region = "cdg"
 kill_signal = "SIGINT"
-kill_timeout = 5
-processes = [ ]
-
-[env]
-PORT = "8080"
-NODE_ENV = "production"
-
-[deploy]
-strategy = "bluegreen"
+kill_timeout = "5s"
 
 [experimental]
-allowed_public_ports = [ ]
-auto_rollback = true
-cmd = "start.sh"
-entrypoint = "sh"
+  cmd = ["start.sh"]
+  entrypoint = ["sh"]
+  auto_rollback = true
+
+[deploy]
+  strategy = "bluegreen"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
 
 [[services]]
-internal_port = 8_080
-processes = [ "app" ]
-protocol = "tcp"
-script_checks = [ ]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["app"]
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
 
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
   [services.concurrency]
-  hard_limit = 25
-  soft_limit = 20
-  type = "connections"
-
-  [[services.ports]]
-  handlers = [ "http" ]
-  port = 80
-  force_https = true
-
-  [[services.ports]]
-  handlers = [ "tls", "http" ]
-  port = 443
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
 
   [[services.http_checks]]
-  interval = 10_000
-  grace_period = "5s"
-  method = "get"
-  path = "/healthcheck"
-  protocol = "http"
-  restart_limit = 0
-  timeout = 2_000
-  tls_skip_verify = false
-  headers = { }
+    interval = "10s"
+    timeout = "2s"
+    grace_period = "5s"
+    restart_limit = 0
+    method = "get"
+    path = "/healthcheck"
+    protocol = "http"
