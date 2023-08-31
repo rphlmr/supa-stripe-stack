@@ -158,7 +158,6 @@ async function seed() {
 		features: {
 			customer_update: {
 				enabled: true,
-				// @ts-expect-error exists in Stripe API
 				// https://stripe.com/docs/api/customer_portal/configurations/create?lang=node#create_portal_configuration-features-customer_update-allowed_updates
 				allowed_updates: [
 					"address",
