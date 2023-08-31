@@ -5,37 +5,37 @@ import type { Locales } from "remix-utils";
 import { SupaStripeStackError } from "./error";
 
 type LocaleContext = {
-  locales: Locales;
-  timeZone: string;
+	locales: Locales;
+	timeZone: string;
 };
 
 type LocaleProviderProps = {
-  locales: Locales;
-  timeZone: string;
-  children: React.ReactNode;
+	locales: Locales;
+	timeZone: string;
+	children: React.ReactNode;
 };
 
 const Context = createContext<LocaleContext | null>(null);
 
 export const LocaleProvider = ({
-  locales,
-  timeZone,
-  children,
+	locales,
+	timeZone,
+	children,
 }: LocaleProviderProps) => {
-  const value = useMemo(() => ({ locales, timeZone }), [locales, timeZone]);
+	const value = useMemo(() => ({ locales, timeZone }), [locales, timeZone]);
 
-  return <Context.Provider value={value}>{children}</Context.Provider>;
+	return <Context.Provider value={value}>{children}</Context.Provider>;
 };
 
 export const useLocales = () => {
-  const context = useContext(Context);
+	const context = useContext(Context);
 
-  if (!context) {
-    throw new SupaStripeStackError({
-      message: `useLocales must be used within a LocaleProvider.`,
-    });
-  }
-  return context;
+	if (!context) {
+		throw new SupaStripeStackError({
+			message: `useLocales must be used within a LocaleProvider.`,
+		});
+	}
+	return context;
 };
 
 //@credits https://donavon.com/blog/remix-locale

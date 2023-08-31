@@ -16,43 +16,43 @@ import type { HTTPStatusCode } from "./http-status";
  *
  */
 export type FailureReason = {
-  message: string;
-  status?: HTTPStatusCode;
-  cause?: unknown;
-  metadata?: Record<string, unknown>;
-  tag?: string;
-  traceId?: string;
+	message: string;
+	status?: HTTPStatusCode;
+	cause?: unknown;
+	metadata?: Record<string, unknown>;
+	tag?: string;
+	traceId?: string;
 };
 
 /**
  * A custom error class to normalize the error handling in our app.
  */
 export class SupaStripeStackError extends Error {
-  readonly cause: FailureReason["cause"];
-  readonly metadata: FailureReason["metadata"];
-  readonly tag: FailureReason["tag"];
-  readonly status: FailureReason["status"];
-  traceId: FailureReason["traceId"];
+	readonly cause: FailureReason["cause"];
+	readonly metadata: FailureReason["metadata"];
+	readonly tag: FailureReason["tag"];
+	readonly status: FailureReason["status"];
+	traceId: FailureReason["traceId"];
 
-  constructor({
-    message,
-    status = 500,
-    cause = null,
-    metadata,
-    tag = "untagged 🐞",
-    traceId,
-  }: FailureReason) {
-    super();
-    this.name = "SupaStripeStackError 👀";
-    this.message = message;
-    this.status = isSupaStripeStackError(cause) ? cause.status : status;
-    this.cause = cause;
-    this.metadata = metadata;
-    this.tag = tag;
-    this.traceId = traceId || createId();
-  }
+	constructor({
+		message,
+		status = 500,
+		cause = null,
+		metadata,
+		tag = "untagged 🐞",
+		traceId,
+	}: FailureReason) {
+		super();
+		this.name = "SupaStripeStackError 👀";
+		this.message = message;
+		this.status = isSupaStripeStackError(cause) ? cause.status : status;
+		this.cause = cause;
+		this.metadata = metadata;
+		this.tag = tag;
+		this.traceId = traceId || createId();
+	}
 }
 
 function isSupaStripeStackError(cause: unknown): cause is SupaStripeStackError {
-  return cause instanceof SupaStripeStackError;
+	return cause instanceof SupaStripeStackError;
 }

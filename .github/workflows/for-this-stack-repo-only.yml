@@ -1,60 +1,60 @@
 name: 🚀 Check Stack
 on:
-  push:
-    branches:
-      - main
-      - dev
-  pull_request: {}
+    push:
+        branches:
+            - main
+            - dev
+    pull_request: {}
 permissions:
-  actions: write
-  contents: read
+    actions: write
+    contents: read
 
 jobs:
-  lint:
-    name: ⬣ ESLint
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🛑 Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.11.0
+    lint:
+        name: ⬣ ESLint
+        runs-on: ubuntu-latest
+        steps:
+            - name: 🛑 Cancel Previous Runs
+              uses: styfle/cancel-workflow-action@0.11.0
 
-      - name: ⬇️ Checkout repo
-        uses: actions/checkout@v3
+            - name: ⬇️ Checkout repo
+              uses: actions/checkout@v3
 
-      - name: ⎔ Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
+            - name: ⎔ Setup node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 16
 
-      - name: 📥 Download deps
-        uses: bahmutov/npm-install@v1
-        with:
-          useLockFile: false
+            - name: 📥 Download deps
+              uses: bahmutov/npm-install@v1
+              with:
+                  useLockFile: false
 
-      - name: ⚙️ Build CSS
-        run: npm run generate:css
+            - name: ⚙️ Build CSS
+              run: npm run generate:css
 
-      - name: 🔬 Lint
-        run: npm run lint
+            - name: 🔬 Lint
+              run: npm run lint
 
-  typecheck:
-    name: ʦ TypeScript
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🛑 Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.11.0
+    typecheck:
+        name: ʦ TypeScript
+        runs-on: ubuntu-latest
+        steps:
+            - name: 🛑 Cancel Previous Runs
+              uses: styfle/cancel-workflow-action@0.11.0
 
-      - name: ⬇️ Checkout repo
-        uses: actions/checkout@v3
+            - name: ⬇️ Checkout repo
+              uses: actions/checkout@v3
 
-      - name: ⎔ Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
+            - name: ⎔ Setup node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 16
 
-      - name: 📥 Download deps
-        uses: bahmutov/npm-install@v1
-        with:
-          useLockFile: false
+            - name: 📥 Download deps
+              uses: bahmutov/npm-install@v1
+              with:
+                  useLockFile: false
 
-      - name: 🔎 Type check
-        run: npm run typecheck --if-present
+            - name: 🔎 Type check
+              run: npm run typecheck --if-present

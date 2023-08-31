@@ -8,21 +8,21 @@ import { useEffect, useRef } from "react";
  * @param delay - in milliseconds
  */
 export function useInterval(callback: () => void, delay: number | null) {
-  const savedCallback = useRef<() => void>();
+	const savedCallback = useRef<() => void>();
 
-  // Remember the latest callback.
-  useEffect(() => {
-    savedCallback.current = callback;
-  }, [callback]);
+	// Remember the latest callback.
+	useEffect(() => {
+		savedCallback.current = callback;
+	}, [callback]);
 
-  // Set up the interval.
-  useEffect(() => {
-    function tick() {
-      savedCallback.current?.();
-    }
-    if (delay) {
-      const id = setInterval(tick, delay);
-      return () => clearInterval(id);
-    }
-  }, [delay]);
+	// Set up the interval.
+	useEffect(() => {
+		function tick() {
+			savedCallback.current?.();
+		}
+		if (delay) {
+			const id = setInterval(tick, delay);
+			return () => clearInterval(id);
+		}
+	}, [delay]);
 }
