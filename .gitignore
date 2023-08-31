@@ -5,4 +5,7 @@ node_modules
 .env
 .cache
 
-/app/styles/tailwind.css
+# lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

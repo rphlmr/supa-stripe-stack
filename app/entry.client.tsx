@@ -9,24 +9,24 @@ import { LocaleProvider } from "~/utils";
 const locales = window.navigator.languages as Locales;
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 document.cookie = `timeZone=${timeZone}; path=/; max-age=${
-  60 * 60 * 24 * 365
+	60 * 60 * 24 * 365
 }; secure; samesite=lax`;
 
 function hydrate() {
-  React.startTransition(() => {
-    hydrateRoot(
-      document,
-      <React.StrictMode>
-        <LocaleProvider locales={locales} timeZone={timeZone}>
-          <RemixBrowser />
-        </LocaleProvider>
-      </React.StrictMode>
-    );
-  });
+	React.startTransition(() => {
+		hydrateRoot(
+			document,
+			<React.StrictMode>
+				<LocaleProvider locales={locales} timeZone={timeZone}>
+					<RemixBrowser />
+				</LocaleProvider>
+			</React.StrictMode>,
+		);
+	});
 }
 
 if (window.requestIdleCallback) {
-  window.requestIdleCallback(hydrate);
+	window.requestIdleCallback(hydrate);
 } else {
-  window.setTimeout(hydrate, 1);
+	window.setTimeout(hydrate, 1);
 }

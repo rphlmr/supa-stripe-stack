@@ -1,5 +1,8 @@
 {
-  "tailwindCSS.experimental.classRegex": [
-    ["tw\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
-  ]
+	"tailwindCSS.experimental.classRegex": [
+		["tw\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+	],
+	"typescript.tsdk": "node_modules/typescript/lib",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": false,
 }

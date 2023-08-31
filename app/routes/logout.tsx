@@ -4,9 +4,9 @@ import { destroyAuthSession } from "~/modules/auth";
 import { response } from "~/utils";
 
 export async function action({ request }: ActionArgs) {
-  return destroyAuthSession(request);
+	return destroyAuthSession(request);
 }
 
 export async function loader() {
-  return response.redirect("/", { authSession: null });
+	return response.redirect("/", { authSession: null });
 }

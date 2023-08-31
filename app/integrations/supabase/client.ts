@@ -2,30 +2,30 @@ import { createClient } from "@supabase/supabase-js";
 
 import { SupaStripeStackError } from "~/utils";
 import {
-  SUPABASE_SERVICE_ROLE,
-  SUPABASE_URL,
-  SUPABASE_ANON_PUBLIC,
+	SUPABASE_SERVICE_ROLE,
+	SUPABASE_URL,
+	SUPABASE_ANON_PUBLIC,
 } from "~/utils/env";
 import { isBrowser } from "~/utils/is-browser";
 
 function getSupabaseClient(supabaseKey: string, accessToken?: string) {
-  const global = accessToken
-    ? {
-        global: {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      }
-    : {};
+	const global = accessToken
+		? {
+				global: {
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+				},
+		  }
+		: {};
 
-  return createClient(SUPABASE_URL, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    ...global,
-  });
+	return createClient(SUPABASE_URL, supabaseKey, {
+		auth: {
+			autoRefreshToken: false,
+			persistSession: false,
+		},
+		...global,
+	});
 }
 
 /**
@@ -36,7 +36,7 @@ function getSupabaseClient(supabaseKey: string, accessToken?: string) {
  * Reason : https://github.com/rphlmr/supa-fly-stack/pull/43#issue-1336412790
  */
 function getSupabase(accessToken?: string) {
-  return getSupabaseClient(SUPABASE_ANON_PUBLIC, accessToken);
+	return getSupabaseClient(SUPABASE_ANON_PUBLIC, accessToken);
 }
 
 /**
@@ -47,13 +47,13 @@ function getSupabase(accessToken?: string) {
  * Reason : https://github.com/rphlmr/supa-fly-stack/pull/43#issue-1336412790
  */
 function supabaseAdmin() {
-  if (isBrowser)
-    throw new SupaStripeStackError({
-      message:
-        "supabaseAdmin is not available in browser and should NOT be used in insecure environments",
-    });
+	if (isBrowser)
+		throw new SupaStripeStackError({
+			message:
+				"supabaseAdmin is not available in browser and should NOT be used in insecure environments",
+		});
 
-  return getSupabaseClient(SUPABASE_SERVICE_ROLE);
+	return getSupabaseClient(SUPABASE_SERVICE_ROLE);
 }
 
 export { supabaseAdmin, getSupabase };
