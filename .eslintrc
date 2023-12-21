@@ -36,7 +36,6 @@
 		],
 		//import
 		"import/no-cycle": "error",
-		"import/no-unresolved": "error",
 		"import/no-default-export": "warn",
 		"import/order": [
 			"error",

@@ -1,6 +1,4 @@
-import * as React from "react";
-
-import type { ActionArgs, LoaderArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import {
 	Form,
 	Link,
@@ -21,7 +19,7 @@ import {
 	SupaStripeStackError,
 } from "~/utils";
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
 	try {
 		const isAnonymous = await isAnonymousSession(request);
 
@@ -45,7 +43,7 @@ const JoinFormSchema = z.object({
 	redirectTo: z.string().optional(),
 });
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	try {
 		const payload = await parseData(
 			parseFormAny(await request.formData()),

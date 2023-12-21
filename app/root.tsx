@@ -2,11 +2,10 @@ import { Fragment, useEffect, useState } from "react";
 
 import { Dialog, Transition } from "@headlessui/react";
 import { Bars3Icon, XCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { cssBundleHref } from "@remix-run/css-bundle";
 import type {
 	LinksFunction,
-	LoaderArgs,
-	V2_MetaFunction as MetaFunction,
+	LoaderFunctionArgs,
+	MetaFunction,
 } from "@remix-run/node";
 import {
 	Form,
@@ -31,14 +30,8 @@ import { getUserTier } from "./modules/user";
 import tailwindStylesheetUrl from "./styles/tailwind.css";
 
 export const links: LinksFunction = () => [
-	{ rel: "preload", href: tailwindStylesheetUrl, as: "style" },
-	{ rel: "stylesheet", href: tailwindStylesheetUrl, as: "style" },
-	...(cssBundleHref
-		? [
-				{ rel: "preload", href: cssBundleHref, as: "style" },
-				{ rel: "stylesheet", href: cssBundleHref },
-		  ]
-		: []),
+	{ rel: "stylesheet preload prefetch", href: tailwindStylesheetUrl, as: "style" },
+	
 ];
 
 export const meta: MetaFunction = () => [
@@ -46,7 +39,7 @@ export const meta: MetaFunction = () => [
 	{ name: "description", content: "Notee App" },
 ];
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const isAnonymous = await isAnonymousSession(request);
 
 	if (isAnonymous) {

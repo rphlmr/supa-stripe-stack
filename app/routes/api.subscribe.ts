@@ -1,4 +1,4 @@
-import type { ActionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "@remix-run/node";
 import { parseFormAny } from "react-zorm";
 import { z } from "zod";
 
@@ -10,7 +10,7 @@ import { response, parseData, SupaStripeStackError } from "~/utils";
 
 export type SubscribeApiAction = typeof action;
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const authSession = await requireAuthSession(request);
 	const { userId } = authSession;
 

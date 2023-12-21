@@ -1,11 +1,11 @@
-import type { ActionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "@remix-run/node";
 
 import { requireAuthSession } from "~/modules/auth";
 import { createBillingPortalSession } from "~/modules/billing-portal";
 import { getBillingInfo } from "~/modules/user";
 import { response } from "~/utils";
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const authSession = await requireAuthSession(request);
 	const { userId } = authSession;
 

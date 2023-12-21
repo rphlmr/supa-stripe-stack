@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { RemixBrowser } from "@remix-run/react";
 import { hydrateRoot } from "react-dom/client";
-import type { Locales } from "remix-utils";
+import type { Locales } from "remix-utils/locales/server";
 
 import { LocaleProvider } from "~/utils";
 

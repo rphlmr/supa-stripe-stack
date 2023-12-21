@@ -1,4 +1,4 @@
-import type { ActionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "@remix-run/node";
 import { z } from "zod";
 
 import { stripe } from "~/integrations/stripe";
@@ -52,7 +52,7 @@ async function getStripeEvent(request: Request) {
 	}
 }
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const event = await getStripeEvent(request);
 	const eventId = event.id;
 

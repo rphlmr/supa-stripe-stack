@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo } from "react";
 
-import type { Locales } from "remix-utils";
+import type { Locales } from "remix-utils/locales/server";
 
 import { SupaStripeStackError } from "./error";
 
