@@ -20,7 +20,7 @@
 		"start:ci": "dotenv -- remix-serve build",
 		"typecheck": "tsc -b",
 		"validate": "run-p lint typecheck",
-		"script": "ts-node --require tsconfig-paths/register ./scripts/$npm_config_name.ts"
+		"script": "tsx ./scripts/$npm_config_name.ts"
 	},
 	"dependencies": {
 		"@headlessui/react": "^1.7.17",
@@ -63,8 +63,8 @@
 		"prisma": "^5.7.1",
 		"tailwind-scrollbar": "^3.0.5",
 		"tailwindcss": "^3.4.0",
-		"ts-node": "^10.9.2",
 		"tsconfig-paths": "^4.2.0",
+		"tsx": "^4.7.0",
 		"typescript": "^5.3.3"
 	},
 	"engines": {
@@ -72,6 +72,6 @@
 	},
 	"prisma": {
 		"schema": "app/database/schema.prisma",
-		"seed": "ts-node --require tsconfig-paths/register scripts/_seed.ts"
+		"seed": "tsx scripts/_seed.ts"
 	}
 }
