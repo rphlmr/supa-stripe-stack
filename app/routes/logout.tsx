@@ -1,9 +1,9 @@
-import type { ActionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "@remix-run/node";
 
 import { destroyAuthSession } from "~/modules/auth";
 import { response } from "~/utils";
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	return destroyAuthSession(request);
 }
 

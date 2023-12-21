@@ -1,5 +1,5 @@
 import { CloudArrowUpIcon, TrashIcon } from "@heroicons/react/24/outline";
-import type { ActionArgs, LoaderArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import {
 	Form,
 	useActionData,
@@ -27,7 +27,7 @@ import {
  *
  */
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const authSession = await requireAuthSession(request);
 	const { userId } = authSession;
 
@@ -56,7 +56,7 @@ const NoteFormSchema = z.object({
 	content: z.string().trim().min(1),
 });
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const authSession = await requireAuthSession(request);
 	const { userId } = authSession;
 

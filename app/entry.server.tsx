@@ -1,11 +1,13 @@
 import { PassThrough } from "stream";
 
-import { Response } from "@remix-run/node";
-import type { EntryContext } from "@remix-run/node";
+import {
+	createReadableStreamFromReadable,
+	type EntryContext,
+} from "@remix-run/node";
 import { RemixServer } from "@remix-run/react";
 import isbot from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
-import { getClientLocales } from "remix-utils";
+import { getClientLocales } from "remix-utils/locales/server";
 
 import { LocaleProvider, getCookie, Logger } from "~/utils";
 
@@ -34,11 +36,12 @@ export default function handleRequest(
 			{
 				[callbackName]() {
 					const body = new PassThrough();
+					const stream = createReadableStreamFromReadable(body);
 
 					responseHeaders.set("Content-Type", "text/html");
 
 					resolve(
-						new Response(body, {
+						new Response(stream, {
 							status: didError ? 500 : responseStatusCode,
 							headers: responseHeaders,
 						}),

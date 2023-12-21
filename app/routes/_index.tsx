@@ -1,4 +1,4 @@
-import type { LoaderArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
 import { ButtonLink } from "~/components";
@@ -6,7 +6,7 @@ import { isAnonymousSession } from "~/modules/auth";
 import { getPricingPlan, PricingTable } from "~/modules/price";
 import { getDefaultCurrency, response } from "~/utils";
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const isAnonymous = await isAnonymousSession(request);
 
 	if (!isAnonymous) {

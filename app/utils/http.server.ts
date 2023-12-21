@@ -1,8 +1,7 @@
 import { Currency } from "@prisma/client";
-import type { ResponseInit } from "@remix-run/node";
 import { redirect, json, defer } from "@remix-run/node";
 import countryToCurrency from "country-to-currency";
-import { getClientLocales } from "remix-utils";
+import { getClientLocales } from "remix-utils/locales/server";
 import { z } from "zod";
 
 import { DEFAULT_CURRENCY } from "./env";

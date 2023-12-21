@@ -1,5 +1,5 @@
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
-import type { ActionArgs, LoaderArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import {
 	Form,
 	useFetcher,
@@ -14,7 +14,7 @@ import { getSubscription } from "~/modules/subscription";
 import { deleteUser, getBillingInfo, getUserTier } from "~/modules/user";
 import { getDefaultCurrency, response, isFormProcessing, tw } from "~/utils";
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const authSession = await requireAuthSession(request);
 	const { userId } = authSession;
 
@@ -42,7 +42,7 @@ export async function loader({ request }: LoaderArgs) {
 	}
 }
 
-export async function action({ request }: ActionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	const authSession = await requireAuthSession(request);
 	const { userId } = authSession;
 

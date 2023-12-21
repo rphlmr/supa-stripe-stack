@@ -1,5 +1,5 @@
 import { SparklesIcon } from "@heroicons/react/24/outline";
-import type { LoaderArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useLoaderData, useSubmit } from "@remix-run/react";
 
 import { useInterval } from "~/hooks";
@@ -7,7 +7,7 @@ import { requireAuthSession } from "~/modules/auth";
 import { getSubscription } from "~/modules/subscription";
 import { response } from "~/utils";
 
-export async function loader({ request }: LoaderArgs) {
+export async function loader({ request }: LoaderFunctionArgs) {
 	const authSession = await requireAuthSession(request);
 	const { userId } = authSession;
 
