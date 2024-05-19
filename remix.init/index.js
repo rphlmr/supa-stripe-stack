@@ -15,12 +15,8 @@ function getRandomString(length) {
 	return crypto.randomBytes(length).toString("hex");
 }
 
-async function main({ rootDirectory, packageManager, isTypeScript }) {
+async function main({ rootDirectory, packageManager }) {
 	console.log(`🚀  Making something cool with this template ...`);
-
-	if (!isTypeScript) {
-		throw new Error("😌  Sorry, this template only supports TypeScript");
-	}
 
 	const FLY_TOML_PATH = path.join(rootDirectory, "fly.toml");
 	const EXAMPLE_ENV_PATH = path.join(rootDirectory, ".env.example");
@@ -70,7 +66,7 @@ async function main({ rootDirectory, packageManager, isTypeScript }) {
 		? dockerfile.replace(
 				new RegExp(escapeRegExp("ADD package.json"), "g"),
 				`ADD package.json ${lockfile}`,
-		  )
+			)
 		: dockerfile;
 
 	await Promise.all([
